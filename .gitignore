@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller / Build artifacts
+build/
+*.spec
+*.manifest
+
+# Note: We do not ignore dist/TerrariaSaveEditor.exe if needed or we keep dist/ ignored in git while uploading executable as release artifact
+dist/
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# System / IDE
+.vscode/
+.idea/
+*.swp
+*.bak
+*.plr
