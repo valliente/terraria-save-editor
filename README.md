@@ -7,14 +7,35 @@ A modern, local desktop application for editing Terraria player save files (`.pl
 
 ---
 
+## 🛡️ Windows SmartScreen / Defender Notice
+
+Because this is a standalone open-source utility compiled with PyInstaller, Windows SmartScreen or Smart App Control may display an *"Unknown Publisher"* warning upon downloading or launching for the first time.
+
+### How to run smoothly:
+
+- **Option A (Quick UI Unblock)**:
+  1. Click **More info** on the blue SmartScreen prompt.
+  2. Click **Run anyway**.
+
+- **Option B (Unblock File Properties)**:
+  1. Right-click `TerrariaSaveEditor.exe` -> **Properties**.
+  2. At the bottom of the **General** tab, check **Unblock** -> **Apply**.
+
+- **Option C (PowerShell One-Liner)**:
+  ```powershell
+  Unblock-File -Path .\TerrariaSaveEditor.exe
+  ```
+
+---
+
 ## 🌟 Features
 
-- **🔒 AES Decryption & Encryption**: Seamlessly decrypts and re-encrypts `.plr` files using AES-128-CBC.
-- **🛡️ Auto-Backup System**: Automatically creates a `<filename>.plr.bak` backup file before writing any changes to disk.
-- **👤 Player Attribute Editor**: Modify Player Name, Difficulty Mode (*Classic, Mediumcore, Hardcore, Journey*), Max & Current Health (*up to 500 HP*), Max & Current Mana (*up to 200 Mana*), Hair Style, and Hex/RGB Colors.
+- **🔒 AES Decryption & Encryption**: Decrypts and re-encrypts `.plr` files using AES-128-CBC.
+- **🛡️ Auto-Backup System**: Automatically creates a `<filename>.plr.bak` backup copy before writing changes.
+- **👤 Player Attribute Editor**: Modify Name, Difficulty Mode (*Classic, Mediumcore, Hardcore, Journey*), Health (*100-500 HP*), Mana (*20-200 Mana*), Hair Style, and Hex/RGB Colors.
 - **🎒 Inventory Editor**:
-  - Edit all 50 main inventory slots + 8 Coin & Ammo slots.
-  - Searchable Item Presets (*Zenith, Terraprisma, Platinum Coins, Life Crystal, Solar Armor, etc.*).
+  - Interactive grid for all 50 main inventory slots + 8 Coin & Ammo slots.
+  - Searchable Item Presets (*Zenith, Terraprisma, Platinum Coins, Solar Armor, etc.*).
   - Modifier & Prefix selector (*Legendary, Unreal, Mythical, Godly, Warding, Menacing, etc.*).
   - One-click presets: *Give 9999 Platinum Coins*, *Add Endgame Starter Pack*.
 - **📁 File Management**: Auto-locates standard Terraria player save directories (`My Games\Terraria\Players`) and supports quick backup restoration.
@@ -25,14 +46,14 @@ A modern, local desktop application for editing Terraria player save files (`.pl
 
 1. Go to the [Releases](https://github.com/valliente/terraria-save-editor/releases) page.
 2. Download `TerrariaSaveEditor.exe`.
-3. Double-click `TerrariaSaveEditor.exe` to run (no Python installation or dependencies required).
+3. Unblock the file (if prompted by SmartScreen) and double-click to launch!
 
 ---
 
 ## 💻 Building from Source
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/valliente/terraria-save-editor.git
 cd terraria-save-editor
 
@@ -42,7 +63,7 @@ pip install customtkinter pycryptodome pyinstaller
 # Run locally
 python main.py
 
-# Build single-file standalone executable
+# Build single-file executable
 pyinstaller --noconsole --onefile --collect-all customtkinter --name="TerrariaSaveEditor" main.py
 ```
 
@@ -50,4 +71,4 @@ pyinstaller --noconsole --onefile --collect-all customtkinter --name="TerrariaSa
 
 ## 📄 License
 
-MIT License. Free to use and modify for personal non-commercial use.
+MIT License. Free to use and modify.
