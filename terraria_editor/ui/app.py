@@ -35,8 +35,8 @@ class TerrariaSaveEditorApp(ctk.CTk):
         self._build_sidebar()
         self._build_main_area()
         
-        # Start by showing Player Data (stats tab) if loaded, or File Management (Backups) if not
-        self.select_tab("Backups")
+        # Start by showing File Management so user can load a save
+        self.select_tab("File Management")
 
     def _build_sidebar(self):
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=10, fg_color=self.frame_bg, border_color="#333333", border_width=1)
@@ -58,7 +58,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
             ("Player Data", "Player Data", True),
             ("Inventory", "Inventory", True),
             ("World Data", "World Data", False),
-            ("Backups", "Backups", True), # This will be the file tab
+            ("File Management", "File Management", True),
             ("Settings", "Settings", False)
         ]
         
@@ -93,8 +93,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
         self.main_container.grid_rowconfigure(0, weight=1)
         self.main_container.grid_columnconfigure(0, weight=1)
 
-        # Initialize tabs
-        self.frames["Backups"] = FileTab(
+        self.frames["File Management"] = FileTab(
             self.main_container,
             handler=self.handler,
             on_player_loaded_callback=self._on_player_loaded,
@@ -113,6 +112,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
 
         for frame in self.frames.values():
             frame.grid(row=0, column=0, sticky="nsew")
+            frame.grid_remove()
 
     def select_tab(self, name):
         # Update button colors
@@ -153,5 +153,5 @@ class TerrariaSaveEditorApp(ctk.CTk):
             self.inventory_tab.apply_to_player()
 
     def _log(self, msg: str):
-        if hasattr(self.frames["Backups"], 'write_log'):
-            self.frames["Backups"].write_log(msg)
+        if hasattr(self.frames["File Management"], 'write_log'):
+            self.frames["File Management"].write_log(msg)
