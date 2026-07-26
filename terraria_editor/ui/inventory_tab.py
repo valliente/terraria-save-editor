@@ -84,7 +84,7 @@ class InventoryTab(ctk.CTkFrame):
             dropdown_fg_color=self.input_bg,
             text_color="#FFFFFF",
         )
-        self.preset_option.configure(border_color=self.accent_color, border_width=1)
+
         self.preset_option.pack(fill="x", padx=15, pady=(0, 15))
 
         # Item ID Input
@@ -118,7 +118,7 @@ class InventoryTab(ctk.CTkFrame):
             dropdown_fg_color=self.input_bg,
             text_color="#FFFFFF",
         )
-        self.prefix_option.configure(border_color=self.accent_color, border_width=1)
+
         self.prefix_option.pack(side="left", fill="x", expand=True)
 
         # Apply Changes to Slot Button

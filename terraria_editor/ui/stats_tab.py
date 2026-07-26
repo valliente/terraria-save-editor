@@ -69,7 +69,7 @@ class StatsTab(ctk.CTkFrame):
             text_color="#FFFFFF",
             font=ctk.CTkFont(size=14)
         )
-        self.diff_option.configure(border_color=self.accent_color, border_width=1) # Hack to add border
+
         self.diff_option.grid(row=1, column=1, padx=10, pady=(0, 15), sticky="ew")
 
         # Max HP
