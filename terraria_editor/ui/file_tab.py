@@ -4,12 +4,17 @@ import customtkinter as ctk
 
 class FileTab(ctk.CTkFrame):
     def __init__(self, parent, handler, on_player_loaded_callback, on_log_callback):
-        super().__init__(parent)
+        super().__init__(parent, fg_color="transparent")
         self.handler = handler
         self.on_player_loaded = on_player_loaded_callback
         self.log = on_log_callback
 
+        self.accent_color = "#1DB954"
+        self.frame_bg = "#1A1A1A"
+        self.input_bg = "#222222"
+
         self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(3, weight=1)
         self._build_ui()
 
     def _get_default_terraria_dir(self) -> str:
@@ -21,26 +26,26 @@ class FileTab(ctk.CTkFrame):
 
     def _build_ui(self):
         # Header Card
-        header_card = ctk.CTkFrame(self, corner_radius=10, fg_color="#1E1E2E")
-        header_card.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
+        header_card = ctk.CTkFrame(self, corner_radius=10, fg_color=self.frame_bg, border_color="#333333", border_width=1)
+        header_card.grid(row=0, column=0, padx=20, pady=(15, 10), sticky="ew")
         
-        title = ctk.CTkLabel(header_card, text="📁 File & Backup Management", font=ctk.CTkFont(size=20, weight="bold"))
+        title = ctk.CTkLabel(header_card, text="📁 Backups & File Management", font=ctk.CTkFont(size=20, weight="bold"), text_color=self.accent_color)
         title.pack(anchor="w", padx=15, pady=(15, 5))
         
-        subtitle = ctk.CTkLabel(header_card, text="Load, save, or restore Terraria player save files (.plr). Auto-backups (.plr.bak) are created before every save.", font=ctk.CTkFont(size=12), text_color="#A6ADC8")
+        subtitle = ctk.CTkLabel(header_card, text="Load, save, or restore Terraria player save files (.plr). Auto-backups (.plr.bak) are created before every save.", font=ctk.CTkFont(size=12), text_color="#AAAAAA")
         subtitle.pack(anchor="w", padx=15, pady=(0, 15))
 
         # Main Actions Frame
-        actions_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#181825")
+        actions_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=self.frame_bg, border_color="#333333", border_width=1)
         actions_frame.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
         actions_frame.grid_columnconfigure(1, weight=1)
 
         # File Path Input
-        ctk.CTkLabel(actions_frame, text="Active Save File:", font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=0, padx=15, pady=15, sticky="w")
-        self.file_entry = ctk.CTkEntry(actions_frame, placeholder_text="Select or browse for a .plr file...", font=ctk.CTkFont(size=12))
+        ctk.CTkLabel(actions_frame, text="Active Save File:", font=ctk.CTkFont(size=13, weight="bold"), text_color="#FFFFFF").grid(row=0, column=0, padx=15, pady=15, sticky="w")
+        self.file_entry = ctk.CTkEntry(actions_frame, placeholder_text="Select or browse for a .plr file...", font=ctk.CTkFont(size=12), fg_color=self.input_bg, border_color=self.accent_color, border_width=1, text_color="#FFFFFF")
         self.file_entry.grid(row=0, column=1, padx=(0, 10), pady=15, sticky="ew")
 
-        browse_btn = ctk.CTkButton(actions_frame, text="Browse...", width=90, fg_color="#89B4FA", hover_color="#74C7EC", text_color="#11111B", command=self._browse_file)
+        browse_btn = ctk.CTkButton(actions_frame, text="Browse...", width=90, fg_color=self.input_bg, hover_color="#333333", border_color=self.accent_color, border_width=1, text_color="#FFFFFF", command=self._browse_file)
         browse_btn.grid(row=0, column=2, padx=(0, 15), pady=15)
 
         # Buttons Grid
@@ -48,30 +53,29 @@ class FileTab(ctk.CTkFrame):
         btn_grid.grid(row=1, column=0, columnspan=3, padx=15, pady=(0, 15), sticky="ew")
         btn_grid.grid_columnconfigure((0, 1, 2), weight=1)
 
-        load_btn = ctk.CTkButton(btn_grid, text="📂 Load Save File", font=ctk.CTkFont(size=14, weight="bold"), fg_color="#A6E3A1", hover_color="#94E2D5", text_color="#11111B", height=40, command=self._load_file)
+        load_btn = ctk.CTkButton(btn_grid, text="📂 Load Save File", font=ctk.CTkFont(size=14, weight="bold"), fg_color=self.input_bg, hover_color="#333333", border_color=self.accent_color, border_width=1, text_color="#FFFFFF", height=40, command=self._load_file)
         load_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-        save_btn = ctk.CTkButton(btn_grid, text="💾 Save Changes (with Auto-Backup)", font=ctk.CTkFont(size=14, weight="bold"), fg_color="#FAB387", hover_color="#F9E2AF", text_color="#11111B", height=40, command=self._save_file)
+        save_btn = ctk.CTkButton(btn_grid, text="💾 Save Changes", font=ctk.CTkFont(size=14, weight="bold"), fg_color=self.accent_color, hover_color="#158C3E", text_color="#121212", height=40, command=self._save_file)
         save_btn.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        restore_btn = ctk.CTkButton(btn_grid, text="🔄 Restore Backup (.plr.bak)", font=ctk.CTkFont(size=14, weight="bold"), fg_color="#F38BA8", hover_color="#EBA0AC", text_color="#11111B", height=40, command=self._restore_backup)
+        restore_btn = ctk.CTkButton(btn_grid, text="🔄 Restore Backup", font=ctk.CTkFont(size=14, weight="bold"), fg_color=self.input_bg, hover_color="#333333", border_color="#F38BA8", border_width=1, text_color="#F38BA8", height=40, command=self._restore_backup)
         restore_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 
         # Quick Path Shortcuts
-        shortcut_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#181825")
+        shortcut_frame = ctk.CTkFrame(self, corner_radius=10, fg_color=self.frame_bg, border_color="#333333", border_width=1)
         shortcut_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
         
-        ctk.CTkLabel(shortcut_frame, text="Quick Actions:", font=ctk.CTkFont(size=12, weight="bold")).pack(side="left", padx=15, pady=10)
-        auto_dir_btn = ctk.CTkButton(shortcut_frame, text="Locate Terraria Save Folder", fg_color="#313244", hover_color="#45475A", command=self._open_terraria_dir)
+        ctk.CTkLabel(shortcut_frame, text="Quick Actions:", font=ctk.CTkFont(size=12, weight="bold"), text_color=self.accent_color).pack(side="left", padx=15, pady=10)
+        auto_dir_btn = ctk.CTkButton(shortcut_frame, text="Locate Terraria Save Folder", fg_color=self.input_bg, border_color="#333333", border_width=1, hover_color="#333333", text_color="#FFFFFF", command=self._open_terraria_dir)
         auto_dir_btn.pack(side="left", padx=10, pady=10)
 
         # Status & Logging Terminal Output
-        status_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#11111B")
+        status_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#111111", border_color="#333333", border_width=1)
         status_frame.grid(row=3, column=0, padx=20, pady=(10, 20), sticky="nsew")
-        self.grid_rowconfigure(3, weight=1)
 
-        ctk.CTkLabel(status_frame, text="Activity Log", font=ctk.CTkFont(size=12, weight="bold"), text_color="#CDD6F4").pack(anchor="w", padx=15, pady=(10, 5))
-        self.log_textbox = ctk.CTkTextbox(status_frame, font=ctk.CTkFont(family="Consolas", size=11), fg_color="#1E1E2E", text_color="#A6E3A1")
+        ctk.CTkLabel(status_frame, text="Activity Log", font=ctk.CTkFont(size=12, weight="bold"), text_color=self.accent_color).pack(anchor="w", padx=15, pady=(10, 5))
+        self.log_textbox = ctk.CTkTextbox(status_frame, font=ctk.CTkFont(family="Consolas", size=11), fg_color="#0A0A0A", text_color=self.accent_color)
         self.log_textbox.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
         self.write_log("Ready. Select or browse for a Terraria .plr file to begin.")
@@ -90,6 +94,7 @@ class FileTab(ctk.CTkFrame):
         if file_path:
             self.file_entry.delete(0, "end")
             self.file_entry.insert(0, file_path)
+            self._load_file() # Auto load on browse like before
 
     def _open_terraria_dir(self):
         default_dir = self._get_default_terraria_dir()
@@ -123,7 +128,6 @@ class FileTab(ctk.CTkFrame):
             backup_created = self.handler.save_plr(target_path)
             self.write_log(f"SUCCESS: Saved changes to '{target_path}'")
             self.write_log(f"AUTO-BACKUP: Created backup copy at '{backup_created}'")
-            messagebox.showinfo("Success", f"Save file updated successfully!\nAuto-backup saved to:\n{backup_created}")
         except Exception as e:
             self.write_log(f"ERROR saving file: {str(e)}")
             messagebox.showerror("Save Failed", f"Failed to save changes:\n{str(e)}")
@@ -144,7 +148,6 @@ class FileTab(ctk.CTkFrame):
                 player = self.handler.restore_backup(backup_path)
                 self.write_log(f"RESTORED: Successfully restored player '{player.name}' from backup!")
                 self.on_player_loaded(player)
-                messagebox.showinfo("Restored", "Backup restored successfully!")
             except Exception as e:
                 self.write_log(f"ERROR restoring backup: {str(e)}")
                 messagebox.showerror("Restore Failed", f"Failed to restore backup:\n{str(e)}")
