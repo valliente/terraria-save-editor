@@ -70,7 +70,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
                 anchor="w",
                 fg_color="transparent",
                 text_color="#FFFFFF" if enabled else "#555555",
-                hover_color=self.hover_color if enabled else "transparent",
+                hover_color=self.hover_color if enabled else self.frame_bg,
                 border_spacing=10,
                 command=lambda name=tab_name: self.select_tab(name) if enabled else None
             )
