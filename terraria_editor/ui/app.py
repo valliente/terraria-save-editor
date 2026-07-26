@@ -118,7 +118,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
         # Update button colors
         for btn_name, btn in self.nav_buttons.items():
             if btn.cget("state") != "disabled" and btn.cget("text_color") != "#555555":
-                btn.configure(fg_color="transparent", text_color="#FFFFFF", border_color="transparent", border_width=0)
+                btn.configure(fg_color="transparent", text_color="#FFFFFF", border_color=self.frame_bg, border_width=0)
         
         if name in self.nav_buttons:
             self.nav_buttons[name].configure(fg_color="#181818", text_color=self.accent_color, border_color=self.accent_color, border_width=1)
