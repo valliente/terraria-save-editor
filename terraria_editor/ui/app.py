@@ -63,6 +63,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
         ]
         
         for idx, (btn_text, tab_name, enabled) in enumerate(nav_items, start=1):
+            cmd = (lambda name=tab_name: self.select_tab(name)) if enabled else None
             btn = ctk.CTkButton(
                 self.sidebar_frame, 
                 text=btn_text, 
@@ -72,7 +73,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
                 text_color="#FFFFFF" if enabled else "#555555",
                 hover_color=self.hover_color if enabled else self.frame_bg,
                 border_spacing=10,
-                command=lambda name=tab_name: self.select_tab(name) if enabled else None
+                command=cmd
             )
             btn.grid(row=idx, column=0, padx=10, pady=5, sticky="ew")
             self.nav_buttons[tab_name] = btn
@@ -97,7 +98,8 @@ class TerrariaSaveEditorApp(ctk.CTk):
             self.main_container,
             handler=self.handler,
             on_player_loaded_callback=self._on_player_loaded,
-            on_log_callback=self._log
+            on_log_callback=self._log,
+            on_sync_data_callback=self._on_data_changed
         )
         
         self.frames["Player Data"] = StatsTab(

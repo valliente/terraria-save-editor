@@ -3,11 +3,12 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 
 class FileTab(ctk.CTkFrame):
-    def __init__(self, parent, handler, on_player_loaded_callback, on_log_callback):
+    def __init__(self, parent, handler, on_player_loaded_callback, on_log_callback, on_sync_data_callback=None):
         super().__init__(parent, fg_color="transparent")
         self.handler = handler
         self.on_player_loaded = on_player_loaded_callback
         self.log = on_log_callback
+        self.on_sync_data = on_sync_data_callback
 
         self.accent_color = "#1DB954"
         self.frame_bg = "#1A1A1A"
@@ -122,6 +123,9 @@ class FileTab(ctk.CTkFrame):
         if not self.handler.current_file_path and not self.file_entry.get():
             messagebox.showerror("Error", "No file is currently loaded or selected.")
             return
+
+        if self.on_sync_data:
+            self.on_sync_data()
 
         try:
             target_path = self.file_entry.get().strip() or self.handler.current_file_path
