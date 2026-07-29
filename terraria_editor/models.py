@@ -130,6 +130,26 @@ ITEM_NAMES = {
     2997: "Ankh Shield",
     3110: "Terraspark Boots",
     1163: "Tome of Infinite Wisdom",
+    # 1.4.5 Dead Cells Crossover
+    6001: "The Flint",
+    6002: "Mushroom Staff",
+    6003: "Beheaded Vanity Head",
+    6004: "Beheaded Vanity Body",
+    6005: "Beheaded Vanity Legs",
+    # 1.4.5 Palworld Collab
+    6010: "Digtoise Pickaxe",
+    6011: "Pal Sphere",
+    # 1.4.5 New Whips
+    6020: "Moon Lord Whip",
+    6021: "Stardust Whip",
+    6022: "Plantera Whip",
+    6023: "Slime Whip",
+    # 1.4.5 Transformation Mounts
+    6030: "Velociraptor Mount",
+    6031: "Bat Mount",
+    6032: "Rat Mount",
+    6033: "Fairy Mount",
+    6034: "Roller Skates",
 }
 
 PREFIX_NAMES = {

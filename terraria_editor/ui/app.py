@@ -5,6 +5,7 @@ from .file_tab import FileTab
 from .stats_tab import StatsTab
 from .inventory_tab import InventoryTab
 from .journey_tab import JourneyTab
+from .banner_tab import BannerTab
 
 class TerrariaSaveEditorApp(ctk.CTk):
     def __init__(self):
@@ -59,6 +60,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
             ("Player Data", "Player Data", True),
             ("Inventory", "Inventory", True),
             ("Journey & Buffs", "Journey & Buffs", True),
+            ("Banner Management", "Banner Management", True),
             ("File Management", "File Management", True),
             ("Settings", "Settings", False)
         ]
@@ -118,6 +120,11 @@ class TerrariaSaveEditorApp(ctk.CTk):
             on_data_changed_callback=self._on_data_changed
         )
 
+        self.frames["Banner Management"] = BannerTab(
+            self.main_container,
+            on_data_changed_callback=self._on_data_changed
+        )
+
         for frame in self.frames.values():
             frame.grid(row=0, column=0, sticky="nsew")
             frame.grid_remove()
@@ -147,6 +154,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
         self.stats_tab.load_player_data(player)
         self.inventory_tab.load_player_data(player)
         self.frames["Journey & Buffs"].load_player_data(player)
+        self.frames["Banner Management"].load_player_data(player)
 
     @property
     def stats_tab(self):
@@ -161,6 +169,7 @@ class TerrariaSaveEditorApp(ctk.CTk):
             self.stats_tab.apply_to_player()
             self.inventory_tab.apply_to_player()
             self.frames["Journey & Buffs"].apply_to_player()
+            self.frames["Banner Management"].apply_to_player()
 
     def _log(self, msg: str):
         if hasattr(self.frames["File Management"], 'write_log'):

@@ -53,6 +53,7 @@ class JourneyTab(ctk.CTkFrame):
         ctk.CTkLabel(journey_card, text="Research unlocking requires the upcoming\nTerraria 1.4.4 API Integration plugin.", text_color="#777777", justify="left").pack(anchor="w", padx=15, pady=5)
         
         ctk.CTkButton(journey_card, text="Unlock All Items (1.4.4+)", state="disabled", fg_color="#111111", text_color="#555555").pack(fill="x", padx=15, pady=10)
+        ctk.CTkButton(journey_card, text="Max All Research", command=self._max_research, **btn_kwargs).pack(fill="x", padx=15, pady=(5, 10))
 
         # Column 2: 1.4.4 Permanent Buffs
         col2 = ctk.CTkFrame(self, fg_color="transparent")
@@ -83,6 +84,8 @@ class JourneyTab(ctk.CTkFrame):
             cb.pack(anchor="w", padx=15, pady=8)
 
         ctk.CTkLabel(buff_card, text="Note: Checkboxes are visual placeholders until the\nbinary serialization for 1.4.4 is finalized.", text_color="#666666", font=ctk.CTkFont(size=10)).pack(anchor="w", padx=15, pady=(15, 5))
+        
+        ctk.CTkButton(buff_card, text="Unlock All 1.4.4 & 1.4.5 Buffs", command=self._unlock_all_buffs, fg_color=self.input_bg, border_color=self.accent_color, border_width=1, hover_color="#333333", text_color="#FFFFFF", height=35).pack(fill="x", padx=15, pady=10)
 
     def load_player_data(self, player: Player):
         self.player = player
@@ -102,3 +105,12 @@ class JourneyTab(ctk.CTkFrame):
     def _clear_debuffs(self):
         if not self.player: return
         pass
+
+    def _max_research(self):
+        if not self.player: return
+        pass
+
+    def _unlock_all_buffs(self):
+        if not self.player: return
+        for var in self.buff_vars.values():
+            var.set(True)
