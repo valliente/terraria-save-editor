@@ -209,4 +209,10 @@ class StatsTab(ctk.CTkFrame):
         except ValueError:
             pass
 
+        # Parse colors from swatches
+        for attr_name, swatch in self.color_widgets.items():
+            fg = swatch.cget("fg_color")
+            if fg and isinstance(fg, str):
+                setattr(self.player, attr_name, Color.from_hex(fg))
+
         return self.player

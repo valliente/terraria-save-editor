@@ -185,9 +185,15 @@ class InventoryTab(ctk.CTkFrame):
     def _filter_presets(self, *args):
         search_term = self.search_var.get().lower()
         if not search_term:
-            self.preset_option.configure(values=self.item_preset_options)
+            self.preset_option.configure(values=self.item_preset_options[:50])
+            self.preset_option.set(self.item_preset_options[0])
         else:
-            filtered = [opt for opt in self.item_preset_options if search_term in opt.lower()]
+            filtered = []
+            for opt in self.item_preset_options:
+                if search_term in opt.lower():
+                    filtered.append(opt)
+                    if len(filtered) >= 50:
+                        break
             if filtered:
                 self.preset_option.configure(values=filtered)
                 self.preset_option.set(filtered[0])
@@ -228,20 +234,27 @@ class InventoryTab(ctk.CTkFrame):
                 p_name = PREFIX_NAMES.get(item.prefix, "None")
                 self.prefix_option.set(f"{p_name} ({item.prefix})")
 
+    def _update_single_slot_display(self, array_name: str, idx: int):
+        if not self.player: return
+        btn = self.slot_buttons.get((array_name, idx))
+        if not btn: return
+        
+        arr = getattr(self.player, array_name)
+        if idx < len(arr):
+            item = arr[idx]
+            if item.id > 0:
+                prefix_str = f"[{PREFIX_NAMES.get(item.prefix, '')[:3]}] " if item.prefix > 0 else ""
+                text = f"[{idx+1}]\n{prefix_str}{item.name[:10]}\nx{item.stack}"
+                btn.configure(text=text, fg_color="#2A2A2A", text_color=self.accent_color)
+            else:
+                btn.configure(text=f"[{idx+1}]\nEmpty", fg_color="#222222", text_color="#777777")
+
     def _update_grid_display(self):
         if not self.player:
             return
             
-        for (array_name, idx), btn in self.slot_buttons.items():
-            arr = getattr(self.player, array_name)
-            if idx < len(arr):
-                item = arr[idx]
-                if item.id > 0:
-                    prefix_str = f"[{PREFIX_NAMES.get(item.prefix, '')[:3]}] " if item.prefix > 0 else ""
-                    text = f"[{idx+1}]\n{prefix_str}{item.name[:10]}\nx{item.stack}"
-                    btn.configure(text=text, fg_color="#2A2A2A", text_color=self.accent_color)
-                else:
-                    btn.configure(text=f"[{idx+1}]\nEmpty", fg_color="#222222", text_color="#777777")
+        for (array_name, idx) in self.slot_buttons.keys():
+            self._update_single_slot_display(array_name, idx)
                     
         self._select_slot(self.selected_slot_array, self.selected_slot_index, "Slot")
 
@@ -279,7 +292,7 @@ class InventoryTab(ctk.CTkFrame):
             prefix_id = 0
 
         arr[self.selected_slot_index] = InventoryItem(id=item_id, stack=stack, prefix=prefix_id)
-        self._update_grid_display()
+        self._update_single_slot_display(self.selected_slot_array, self.selected_slot_index)
 
     def _clear_slot(self):
         self._set_entry(self.item_id_entry, 0)

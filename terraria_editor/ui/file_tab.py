@@ -1,5 +1,7 @@
 import os
 import glob
+import threading
+import time
 from tkinter import filedialog, messagebox
 import customtkinter as ctk
 import windnd
@@ -157,14 +159,24 @@ class FileTab(ctk.CTkFrame):
             messagebox.showerror("Error", "Please select a valid file path.")
             return
 
+        self.write_log(f"Loading '{file_path}' asynchronously...")
+        threading.Thread(target=self._load_file_thread, args=(file_path,), daemon=True).start()
+
+    def _load_file_thread(self, file_path):
         try:
             player = self.handler.load_plr(file_path)
-            self.write_log(f"SUCCESS: Loaded player '{player.name}' (HP: {player.hp}/{player.max_hp}, Mana: {player.mana}/{player.max_mana})")
-            self._refresh_backups()
-            self.on_player_loaded(player)
+            self.after(0, lambda: self._on_load_success(player))
         except Exception as e:
-            self.write_log(f"ERROR loading file: {str(e)}")
-            messagebox.showerror("Load Failed", f"Failed to decrypt or parse save file:\n{str(e)}")
+            self.after(0, lambda: self._on_load_error(str(e)))
+
+    def _on_load_success(self, player):
+        self.write_log(f"SUCCESS: Loaded player '{player.name}' (HP: {player.hp}/{player.max_hp}, Mana: {player.mana}/{player.max_mana})")
+        self._refresh_backups()
+        self.on_player_loaded(player)
+
+    def _on_load_error(self, err_msg):
+        self.write_log(f"ERROR loading file: {err_msg}")
+        messagebox.showerror("Load Failed", f"Failed to decrypt or parse save file:\n{err_msg}")
 
     def _save_file(self):
         if not self.handler.current_file_path and not self.file_combo.get():
@@ -174,15 +186,25 @@ class FileTab(ctk.CTkFrame):
         if self.on_sync_data:
             self.on_sync_data()
 
+        target_path = self.file_combo.get().strip() or self.handler.current_file_path
+        self.write_log(f"Saving changes to '{target_path}' asynchronously...")
+        threading.Thread(target=self._save_file_thread, args=(target_path,), daemon=True).start()
+
+    def _save_file_thread(self, target_path):
         try:
-            target_path = self.file_combo.get().strip() or self.handler.current_file_path
             backup_created = self.handler.save_plr(target_path)
-            self.write_log(f"SUCCESS: Saved changes to '{target_path}'")
-            self.write_log(f"AUTO-BACKUP: Created backup copy at '{backup_created}'")
-            self._refresh_backups()
+            self.after(0, lambda: self._on_save_success(target_path, backup_created))
         except Exception as e:
-            self.write_log(f"ERROR saving file: {str(e)}")
-            messagebox.showerror("Save Failed", f"Failed to save changes:\n{str(e)}")
+            self.after(0, lambda: self._on_save_error(str(e)))
+
+    def _on_save_success(self, target_path, backup_created):
+        self.write_log(f"SUCCESS: Saved changes to '{target_path}'")
+        self.write_log(f"AUTO-BACKUP: Created backup copy at '{backup_created}'")
+        self._refresh_backups()
+
+    def _on_save_error(self, err_msg):
+        self.write_log(f"ERROR saving file: {err_msg}")
+        messagebox.showerror("Save Failed", f"Failed to save changes:\n{err_msg}")
 
     def _restore_backup(self):
         backup_path = self.backup_combo.get().strip()

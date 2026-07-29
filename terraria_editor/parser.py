@@ -229,6 +229,11 @@ class PLRFileHandler:
         file_path = target_path or self.current_file_path
         if not file_path:
             raise ValueError("No target file path specified for saving.")
+            
+        file_path = os.path.abspath(file_path)
+
+        # Step 0: Pre-save validation & Auto-repair
+        self.validate_player_data(self.player)
 
         # Step 1: Auto-backup
         import datetime
@@ -292,13 +297,44 @@ class PLRFileHandler:
 
         raw_unencrypted = writer.get_bytes()
 
-        # Step 3: Encrypt and write out
+        # Step 3: Encrypt and write out atomically
         encrypted = encrypt_plr(raw_unencrypted, self.key_used)
-        with open(file_path, "wb") as f:
+        tmp_path = file_path + ".tmp"
+        with open(tmp_path, "wb") as f:
             f.write(encrypted)
+            
+        os.replace(tmp_path, file_path)
 
         self.current_file_path = file_path
         return backup_path
+
+    def validate_player_data(self, p: Player):
+        """
+        Validates player bounds and repairs invalid item entries prior to saving
+        to ensure data structure integrity.
+        """
+        p.hp = max(0, min(p.hp, 500))
+        p.max_hp = max(100, min(p.max_hp, 500))
+        p.mana = max(0, min(p.mana, 200))
+        p.max_mana = max(20, min(p.max_mana, 200))
+        
+        # Enforce exact bounds for structures
+        if len(p.inventory) != 58: raise ValueError("Inventory bounds corrupted.")
+        if len(p.armor) != 20: raise ValueError("Armor bounds corrupted.")
+        if len(p.dye) != 10: raise ValueError("Dye bounds corrupted.")
+        if len(p.misc_eq) != 5: raise ValueError("Misc Equip bounds corrupted.")
+
+        # Auto-Repair bad items
+        for array in (p.inventory, p.armor, p.dye, p.misc_eq):
+            for item in array:
+                if item.id < 0: item.id = 0
+                if item.id == 0: 
+                    item.stack = 0
+                    item.prefix = 0
+                elif item.stack < 1:
+                    item.stack = 1
+                elif item.stack > 9999:
+                    item.stack = 9999
 
     def restore_backup(self, backup_path: str) -> Player:
         """

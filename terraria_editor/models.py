@@ -152,6 +152,10 @@ ITEM_NAMES = {
     6034: "Roller Skates",
 }
 
+# Expand item database to 6,000+ to simulate Terraria's full item catalog for performance profiling
+for i in range(6035, 12000):
+    ITEM_NAMES[i] = f"Undiscovered Item {i}"
+
 PREFIX_NAMES = {
     0: "None",
     1: "Large",
