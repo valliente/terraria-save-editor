@@ -183,6 +183,11 @@ class PLRFileHandler:
         armor = [reader.read_item() for _ in range(20)]
         dye = [reader.read_item() for _ in range(10)]
         misc_eq = [reader.read_item() for _ in range(5)]
+        
+        piggy_bank = [reader.read_item() for _ in range(40)]
+        safe = [reader.read_item() for _ in range(40)]
+        defenders_forge = [reader.read_item() for _ in range(40)]
+        void_vault = [reader.read_item() for _ in range(40)]
 
         # Store trailing data to preserve additional banks / modded info without corruption
         self.raw_trailing_data = reader.remaining_bytes()
@@ -216,7 +221,11 @@ class PLRFileHandler:
             inventory=inventory,
             armor=armor,
             dye=dye,
-            misc_eq=misc_eq
+            misc_eq=misc_eq,
+            piggy_bank=piggy_bank,
+            safe=safe,
+            defenders_forge=defenders_forge,
+            void_vault=void_vault
         )
         return self.player
 
@@ -290,6 +299,14 @@ class PLRFileHandler:
             writer.write_item(item)
         for item in p.misc_eq:
             writer.write_item(item)
+        for item in p.piggy_bank:
+            writer.write_item(item)
+        for item in p.safe:
+            writer.write_item(item)
+        for item in p.defenders_forge:
+            writer.write_item(item)
+        for item in p.void_vault:
+            writer.write_item(item)
 
         # Write trailing data
         if self.raw_trailing_data:
@@ -349,3 +366,58 @@ class PLRFileHandler:
             
         shutil.copy2(backup_path, target)
         return self.load_plr(target)
+
+from .models import World
+
+class WLDFileHandler:
+    def __init__(self):
+        self.current_file_path: str = ""
+        self.world: World = World()
+
+    def load_wld(self, file_path: str) -> World:
+        """
+        Mock implementation of .wld binary parsing.
+        Reads basic file headers but delegates deep structure to upcoming API map.
+        """
+        self.current_file_path = file_path
+        # Mock load
+        with open(file_path, "rb") as f:
+            data = f.read()
+        self.world = World(name=os.path.basename(file_path).replace('.wld', ''))
+        return self.world
+
+    def save_wld(self, target_path: str = None) -> str:
+        """
+        Mock save routine for .wld file that writes a backup.
+        Blocks actual binary rewrite to prevent pointer shifting corruption.
+        """
+        file_path = target_path or self.current_file_path
+        if not file_path:
+            raise ValueError("No target file path specified for saving.")
+            
+        file_path = os.path.abspath(file_path)
+
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_dir = os.path.join(os.path.dirname(file_path), "backups")
+        os.makedirs(backup_dir, exist_ok=True)
+        filename = os.path.basename(file_path)
+        backup_path = os.path.join(backup_dir, f"{filename}.bak_{timestamp}")
+        
+        if os.path.exists(file_path):
+            shutil.copy2(file_path, backup_path)
+            
+        # Write operations are blocked in Mock architecture to protect section pointers
+        self.current_file_path = file_path
+        return backup_path
+
+    def restore_backup(self, backup_path: str) -> World:
+        if not os.path.exists(backup_path):
+            raise FileNotFoundError(f"Backup file not found at: {backup_path}")
+        
+        target = self.current_file_path
+        if not target:
+            target = backup_path.split(".bak_")[0]
+            
+        shutil.copy2(backup_path, target)
+        return self.load_wld(target)

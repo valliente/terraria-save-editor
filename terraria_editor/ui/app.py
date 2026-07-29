@@ -6,6 +6,7 @@ from .stats_tab import StatsTab
 from .inventory_tab import InventoryTab
 from .journey_tab import JourneyTab
 from .banner_tab import BannerTab
+from .world_tab import WorldTab
 
 class TerrariaSaveEditorApp(ctk.CTk):
     def __init__(self):
@@ -39,6 +40,16 @@ class TerrariaSaveEditorApp(ctk.CTk):
         
         # Start by showing File Management so user can load a save
         self.select_tab("File Management")
+        
+        # Bind hotkeys
+        self.bind("<Control-o>", lambda e: self.frames["File Management"]._browse_file())
+        self.bind("<Control-s>", lambda e: self.frames["File Management"]._save_file())
+        self.bind("<Control-z>", self._on_undo)
+        
+    def _on_undo(self, event=None):
+        if self.current_frame == self.frames.get("Inventory"):
+            self.frames["Inventory"]._clear_slot()
+        # Add other undo logic for active frame if needed
 
     def _build_sidebar(self):
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=10, fg_color=self.frame_bg, border_color="#333333", border_width=1)
@@ -57,10 +68,11 @@ class TerrariaSaveEditorApp(ctk.CTk):
         self.nav_buttons = {}
         
         nav_items = [
-            ("Player Data", "Player Data", True),
-            ("Inventory", "Inventory", True),
-            ("Journey & Buffs", "Journey & Buffs", True),
-            ("Banner Management", "Banner Management", True),
+            ("World Editing", "World", False),
+            ("Player Data", "Player Data", False),
+            ("Inventory", "Inventory", False),
+            ("Journey & Buffs", "Journey & Buffs", False),
+            ("Banner Management", "Banner Management", False),
             ("File Management", "File Management", True),
             ("Settings", "Settings", False)
         ]
@@ -100,10 +112,11 @@ class TerrariaSaveEditorApp(ctk.CTk):
         self.frames["File Management"] = FileTab(
             self.main_container,
             handler=self.handler,
-            on_player_loaded_callback=self._on_player_loaded,
+            on_player_loaded_callback=None, # Overridden
             on_log_callback=self._log,
             on_sync_data_callback=self._on_data_changed
         )
+        self.frames["File Management"].on_data_loaded = self._on_data_loaded
         
         self.frames["Player Data"] = StatsTab(
             self.main_container,
@@ -121,6 +134,11 @@ class TerrariaSaveEditorApp(ctk.CTk):
         )
 
         self.frames["Banner Management"] = BannerTab(
+            self.main_container,
+            on_data_changed_callback=self._on_data_changed
+        )
+
+        self.frames["World"] = WorldTab(
             self.main_container,
             on_data_changed_callback=self._on_data_changed
         )
@@ -145,16 +163,33 @@ class TerrariaSaveEditorApp(ctk.CTk):
             self.current_frame = self.frames[name]
             self.current_frame.grid()
 
-    def _on_player_loaded(self, player: Player):
-        file_path = self.handler.current_file_path
-        # Truncate path if too long
+    def _on_data_loaded(self, data, file_path):
         display_path = file_path if len(file_path) < 40 else "..." + file_path[-37:]
         self.status_text.configure(text=display_path, text_color=self.accent_color)
         
-        self.stats_tab.load_player_data(player)
-        self.inventory_tab.load_player_data(player)
-        self.frames["Journey & Buffs"].load_player_data(player)
-        self.frames["Banner Management"].load_player_data(player)
+        is_world = file_path.endswith(".wld") or ".wld.bak" in file_path
+        
+        # Toggle Navigation visibility
+        for btn_name, btn in self.nav_buttons.items():
+            if btn_name in ["File Management", "Settings"]: continue
+            if is_world:
+                state = "normal" if btn_name == "World" else "disabled"
+            else:
+                state = "disabled" if btn_name == "World" else "normal"
+                
+            btn.configure(state=state, text_color="#FFFFFF" if state=="normal" else "#555555")
+            if state == "disabled" and self.current_frame == self.frames[btn_name]:
+                self.select_tab("File Management")
+        
+        if is_world:
+            self.frames["World"].load_world_data(data)
+            self.select_tab("World")
+        else:
+            self.stats_tab.load_player_data(data)
+            self.inventory_tab.load_player_data(data)
+            self.frames["Journey & Buffs"].load_player_data(data)
+            self.frames["Banner Management"].load_player_data(data)
+            self.select_tab("Player Data")
 
     @property
     def stats_tab(self):
@@ -165,11 +200,15 @@ class TerrariaSaveEditorApp(ctk.CTk):
         return self.frames["Inventory"]
         
     def _on_data_changed(self):
-        if self.handler.player:
+        if hasattr(self.handler, 'player') and self.handler.player:
             self.stats_tab.apply_to_player()
             self.inventory_tab.apply_to_player()
             self.frames["Journey & Buffs"].apply_to_player()
             self.frames["Banner Management"].apply_to_player()
+            
+        wld_handler = getattr(self.frames["File Management"], 'wld_handler', None)
+        if wld_handler and wld_handler.world:
+            self.frames["World"].apply_to_world()
 
     def _log(self, msg: str):
         if hasattr(self.frames["File Management"], 'write_log'):

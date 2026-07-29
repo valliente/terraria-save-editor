@@ -31,24 +31,26 @@ class FileTab(ctk.CTkFrame):
     def _on_drop(self, files):
         if files:
             path = files[0].decode("gbk", errors="ignore") if isinstance(files[0], bytes) else str(files[0])
-            if path.endswith(".plr") or path.endswith(".bak") or ".bak_" in path:
+            if path.endswith(".plr") or path.endswith(".wld") or path.endswith(".bak") or ".bak_" in path:
                 self.file_combo.set(path)
                 self._load_file()
             else:
-                messagebox.showerror("Invalid File", "Only .plr or .bak files are supported.")
+                messagebox.showerror("Invalid File", "Only .plr, .wld, or .bak files are supported.")
 
-    def _get_default_terraria_dir(self) -> str:
+    def _get_local_files(self):
         user_profile = os.environ.get("USERPROFILE", "")
-        default_dir = os.path.join(user_profile, "Documents", "My Games", "Terraria", "Players")
-        if os.path.exists(default_dir):
-            return default_dir
-        return user_profile
+        base_dir = os.path.join(user_profile, "Documents", "My Games", "Terraria")
         
-    def _get_local_players(self):
-        d = self._get_default_terraria_dir()
-        if os.path.exists(d):
-            return [f for f in glob.glob(os.path.join(d, "*.plr"))]
-        return []
+        files = []
+        players_dir = os.path.join(base_dir, "Players")
+        if os.path.exists(players_dir):
+            files.extend(glob.glob(os.path.join(players_dir, "*.plr")))
+            
+        worlds_dir = os.path.join(base_dir, "Worlds")
+        if os.path.exists(worlds_dir):
+            files.extend(glob.glob(os.path.join(worlds_dir, "*.wld")))
+            
+        return files
 
     def _build_ui(self):
         # Header Card
@@ -58,7 +60,7 @@ class FileTab(ctk.CTkFrame):
         title = ctk.CTkLabel(header_card, text="📁 Backups & File Management", font=ctk.CTkFont(size=20, weight="bold"), text_color=self.accent_color)
         title.pack(anchor="w", padx=15, pady=(15, 5))
         
-        subtitle = ctk.CTkLabel(header_card, text="Load, save, or restore Terraria player save files (.plr). Auto-backups are created before every save.\nYou can also drag-and-drop .plr files anywhere into this window.", font=ctk.CTkFont(size=12), text_color="#AAAAAA")
+        subtitle = ctk.CTkLabel(header_card, text="Load, save, or restore Terraria player (.plr) or world (.wld) files. Auto-backups are created before every save.\nYou can also drag-and-drop files anywhere into this window.", font=ctk.CTkFont(size=12), text_color="#AAAAAA")
         subtitle.pack(anchor="w", padx=15, pady=(0, 15))
 
         # Main Actions Frame
@@ -69,10 +71,10 @@ class FileTab(ctk.CTkFrame):
         # File Path Input
         ctk.CTkLabel(actions_frame, text="Active Save File:", font=ctk.CTkFont(size=13, weight="bold"), text_color="#FFFFFF").grid(row=0, column=0, padx=15, pady=15, sticky="w")
         
-        players = self._get_local_players()
-        self.file_combo = ctk.CTkComboBox(actions_frame, values=players if players else ["Select or browse..."], font=ctk.CTkFont(size=12), fg_color=self.input_bg, border_color=self.accent_color, border_width=1, text_color="#FFFFFF")
-        if players:
-            self.file_combo.set(players[0])
+        files = self._get_local_files()
+        self.file_combo = ctk.CTkComboBox(actions_frame, values=files if files else ["Select or browse..."], font=ctk.CTkFont(size=12), fg_color=self.input_bg, border_color=self.accent_color, border_width=1, text_color="#FFFFFF")
+        if files:
+            self.file_combo.set(files[0])
             
         self.file_combo.grid(row=0, column=1, padx=(0, 10), pady=15, sticky="ew")
 
@@ -122,11 +124,15 @@ class FileTab(ctk.CTkFrame):
         self.log_textbox.see("end")
 
     def _browse_file(self):
-        initial_dir = self._get_default_terraria_dir()
+        user_profile = os.environ.get("USERPROFILE", "")
+        initial_dir = os.path.join(user_profile, "Documents", "My Games", "Terraria")
+        if not os.path.exists(initial_dir):
+            initial_dir = user_profile
+            
         file_path = filedialog.askopenfilename(
             initialdir=initial_dir,
-            title="Select Terraria Player Save File",
-            filetypes=[("Terraria Player Saves", "*.plr"), ("Backup Files", "*.bak*"), ("All Files", "*.*")]
+            title="Select Terraria Save File",
+            filetypes=[("Terraria Saves", "*.plr;*.wld"), ("Backup Files", "*.bak*"), ("All Files", "*.*")]
         )
         if file_path:
             self.file_combo.set(file_path)
@@ -164,15 +170,28 @@ class FileTab(ctk.CTkFrame):
 
     def _load_file_thread(self, file_path):
         try:
-            player = self.handler.load_plr(file_path)
-            self.after(0, lambda: self._on_load_success(player))
+            if file_path.endswith(".wld") or ".wld.bak" in file_path:
+                from ..parser import WLDFileHandler
+                if not hasattr(self, 'wld_handler'):
+                    self.wld_handler = WLDFileHandler()
+                data = self.wld_handler.load_wld(file_path)
+            else:
+                data = self.handler.load_plr(file_path)
+                
+            self.after(0, lambda: self._on_load_success(data, file_path))
         except Exception as e:
             self.after(0, lambda: self._on_load_error(str(e)))
 
-    def _on_load_success(self, player):
-        self.write_log(f"SUCCESS: Loaded player '{player.name}' (HP: {player.hp}/{player.max_hp}, Mana: {player.mana}/{player.max_mana})")
+    def _on_load_success(self, data, file_path):
+        if file_path.endswith(".wld") or ".wld.bak" in file_path:
+            self.write_log(f"SUCCESS: Loaded world '{data.name}'")
+        else:
+            self.write_log(f"SUCCESS: Loaded player '{data.name}' (HP: {data.hp}/{data.max_hp}, Mana: {data.mana}/{data.max_mana})")
         self._refresh_backups()
-        self.on_player_loaded(player)
+        if hasattr(self, 'on_data_loaded'):
+            self.on_data_loaded(data, file_path)
+        else:
+            self.on_player_loaded(data)
 
     def _on_load_error(self, err_msg):
         self.write_log(f"ERROR loading file: {err_msg}")
@@ -192,7 +211,10 @@ class FileTab(ctk.CTkFrame):
 
     def _save_file_thread(self, target_path):
         try:
-            backup_created = self.handler.save_plr(target_path)
+            if target_path.endswith(".wld") or ".wld.bak" in target_path:
+                backup_created = self.wld_handler.save_wld(target_path)
+            else:
+                backup_created = self.handler.save_plr(target_path)
             self.after(0, lambda: self._on_save_success(target_path, backup_created))
         except Exception as e:
             self.after(0, lambda: self._on_save_error(str(e)))

@@ -1,4 +1,6 @@
 import customtkinter as ctk
+import json
+from tkinter import filedialog, messagebox
 from ..models import Player, InventoryItem, ITEM_NAMES, PREFIX_NAMES
 
 class InventoryTab(ctk.CTkFrame):
@@ -44,9 +46,12 @@ class InventoryTab(ctk.CTkFrame):
         # Misc (5 slots)
         self._create_section(scroll_grid, "Misc Equipment", "misc_eq", 0, 5, cols=5)
         
-        # Banks (Coming soon)
+        # Banks
         ctk.CTkLabel(scroll_grid, text="Storage Banks", font=ctk.CTkFont(size=13, weight="bold"), text_color="#AAAAAA").pack(anchor="w", pady=(10, 5))
-        ctk.CTkLabel(scroll_grid, text="(Piggy Bank, Safe, Void Vault editing coming soon pending 1.4.4 API updates)", font=ctk.CTkFont(size=11, slant="italic"), text_color="#666666").pack(anchor="w")
+        self._create_section(scroll_grid, "Piggy Bank", "piggy_bank", 0, 40, cols=10)
+        self._create_section(scroll_grid, "Safe", "safe", 0, 40, cols=10)
+        self._create_section(scroll_grid, "Defender's Forge", "defenders_forge", 0, 40, cols=10)
+        self._create_section(scroll_grid, "Void Vault", "void_vault", 0, 40, cols=10)
 
         # Right Panel: Selected Slot Details & Quick Actions
         details_card = ctk.CTkFrame(self, corner_radius=10, fg_color=self.frame_bg, border_color="#333333", border_width=1)
@@ -154,6 +159,26 @@ class InventoryTab(ctk.CTkFrame):
 
         endgame_btn = ctk.CTkButton(details_card, text="Add Endgame Starter Pack", command=self._give_endgame_pack, **btn_kwargs)
         endgame_btn.pack(fill="x", padx=15, pady=4)
+
+        # Batch Actions
+        ctk.CTkFrame(details_card, height=1, fg_color="#333333").pack(fill="x", padx=15, pady=10)
+        ctk.CTkLabel(details_card, text="⚙️ Batch Operations", font=ctk.CTkFont(size=13, weight="bold"), text_color=self.accent_color).pack(anchor="w", padx=15, pady=(5, 5))
+
+        max_btn = ctk.CTkButton(details_card, text="Max All Stacks in Inventory", command=self._max_all_stacks, **btn_kwargs)
+        max_btn.pack(fill="x", padx=15, pady=4)
+
+        reforge_btn = ctk.CTkButton(details_card, text="Reforge All Gear to Best", command=self._reforge_all_gear, **btn_kwargs)
+        reforge_btn.pack(fill="x", padx=15, pady=4)
+
+        # JSON Loadouts
+        ctk.CTkFrame(details_card, height=1, fg_color="#333333").pack(fill="x", padx=15, pady=10)
+        ctk.CTkLabel(details_card, text="💾 Character Loadouts", font=ctk.CTkFont(size=13, weight="bold"), text_color=self.accent_color).pack(anchor="w", padx=15, pady=(5, 5))
+        
+        export_btn = ctk.CTkButton(details_card, text="Export Loadout to JSON", command=self._export_loadout, **btn_kwargs)
+        export_btn.pack(fill="x", padx=15, pady=4)
+        
+        import_btn = ctk.CTkButton(details_card, text="Import Loadout from JSON", command=self._import_loadout, **btn_kwargs)
+        import_btn.pack(fill="x", padx=15, pady=4)
 
     def _create_section(self, parent, title, array_name, start_idx, end_idx, cols):
         ctk.CTkLabel(parent, text=title, font=ctk.CTkFont(size=13, weight="bold"), text_color="#AAAAAA").pack(anchor="w", pady=(10, 5))
@@ -324,3 +349,61 @@ class InventoryTab(ctk.CTkFrame):
                 self.player.inventory[idx] = item
         self._update_grid_display()
         self._select_slot("inventory", 0, "Hotbar")
+
+    def _max_all_stacks(self):
+        if not self.player: return
+        for item in self.player.inventory:
+            if item.id > 0:
+                item.stack = 9999
+        self._update_grid_display()
+
+    def _reforge_all_gear(self):
+        if not self.player: return
+        # Best modifier logic (mocked to Menacing=65 for accessories, Legendary=81 for melee, etc. - we'll just apply Menacing to all accessories and Legendary to armor/hotbar items as a generic "Best" override for this demo)
+        for item in self.player.armor:
+            if item.id > 0: item.prefix = 65 # Menacing
+        for item in self.player.inventory:
+            if item.id > 0: item.prefix = 81 # Legendary
+        self._update_grid_display()
+
+    def _export_loadout(self):
+        if not self.player: return
+        path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON Loadouts", "*.json")])
+        if not path: return
+        
+        loadout = {
+            "inventory": [{"id": i.id, "stack": i.stack, "prefix": i.prefix} for i in self.player.inventory[:10]], # Just hotbar
+            "armor": [{"id": i.id, "stack": i.stack, "prefix": i.prefix} for i in self.player.armor],
+            "dye": [{"id": i.id, "stack": i.stack, "prefix": i.prefix} for i in self.player.dye]
+        }
+        
+        try:
+            with open(path, "w") as f:
+                json.dump(loadout, f, indent=4)
+            messagebox.showinfo("Success", "Loadout exported successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export: {str(e)}")
+
+    def _import_loadout(self):
+        if not self.player: return
+        path = filedialog.askopenfilename(filetypes=[("JSON Loadouts", "*.json")])
+        if not path: return
+        
+        try:
+            with open(path, "r") as f:
+                loadout = json.load(f)
+                
+            for idx, data in enumerate(loadout.get("inventory", [])):
+                if idx < 10:
+                    self.player.inventory[idx] = InventoryItem(id=data["id"], stack=data["stack"], prefix=data.get("prefix", 0))
+            for idx, data in enumerate(loadout.get("armor", [])):
+                if idx < len(self.player.armor):
+                    self.player.armor[idx] = InventoryItem(id=data["id"], stack=data["stack"], prefix=data.get("prefix", 0))
+            for idx, data in enumerate(loadout.get("dye", [])):
+                if idx < len(self.player.dye):
+                    self.player.dye[idx] = InventoryItem(id=data["id"], stack=data["stack"], prefix=data.get("prefix", 0))
+            
+            self._update_grid_display()
+            messagebox.showinfo("Success", "Loadout imported successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to import: {str(e)}")

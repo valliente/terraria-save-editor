@@ -79,6 +79,10 @@ class Player:
     armor: List[InventoryItem] = field(default_factory=list)
     dye: List[InventoryItem] = field(default_factory=list)
     misc_eq: List[InventoryItem] = field(default_factory=list)
+    piggy_bank: List[InventoryItem] = field(default_factory=list)
+    safe: List[InventoryItem] = field(default_factory=list)
+    defenders_forge: List[InventoryItem] = field(default_factory=list)
+    void_vault: List[InventoryItem] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.inventory:
@@ -89,6 +93,47 @@ class Player:
             self.dye = [InventoryItem() for _ in range(10)]
         if not self.misc_eq:
             self.misc_eq = [InventoryItem() for _ in range(5)]
+        if not self.piggy_bank:
+            self.piggy_bank = [InventoryItem() for _ in range(40)]
+        if not self.safe:
+            self.safe = [InventoryItem() for _ in range(40)]
+        if not self.defenders_forge:
+            self.defenders_forge = [InventoryItem() for _ in range(40)]
+        if not self.void_vault:
+            self.void_vault = [InventoryItem() for _ in range(40)]
+
+@dataclass
+class World:
+    file_type: str = "relogic"
+    name: str = "World"
+    seed: str = "RandomSeed"
+    size: str = "Small"
+    difficulty: str = "Classic"
+    world_evil: str = "Corrupt"
+    hardmode: bool = False
+    
+    # Boss Flags
+    downed_slime_king: bool = False
+    downed_eye_of_cthulhu: bool = False
+    downed_eater_brain: bool = False
+    downed_skeletron: bool = False
+    downed_wall_of_flesh: bool = False
+    downed_mech_boss_1: bool = False
+    downed_mech_boss_2: bool = False
+    downed_mech_boss_3: bool = False
+    downed_plantera: bool = False
+    downed_golem: bool = False
+    downed_empress: bool = False
+    downed_duke_fishron: bool = False
+    downed_cultist: bool = False
+    downed_moon_lord: bool = False
+
+    # NPCs (mock dictionary)
+    npcs: dict = field(default_factory=lambda: {
+        "Guide": True, "Merchant": False, "Nurse": False, "Dryad": False, 
+        "Arms Dealer": False, "Goblin Tinkerer": False, "Mechanic": False, 
+        "Truffle": False, "Wizard": False, "Steampunker": False, "Cyborg": False
+    })
 
 # Curated Item Database for Quick Add & Name Lookup
 ITEM_NAMES = {
