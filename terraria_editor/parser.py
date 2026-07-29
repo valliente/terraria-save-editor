@@ -231,7 +231,13 @@ class PLRFileHandler:
             raise ValueError("No target file path specified for saving.")
 
         # Step 1: Auto-backup
-        backup_path = file_path + ".bak"
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_dir = os.path.join(os.path.dirname(file_path), "backups")
+        os.makedirs(backup_dir, exist_ok=True)
+        filename = os.path.basename(file_path)
+        backup_path = os.path.join(backup_dir, f"{filename}.bak_{timestamp}")
+        
         if os.path.exists(file_path):
             shutil.copy2(file_path, backup_path)
 
@@ -294,14 +300,16 @@ class PLRFileHandler:
         self.current_file_path = file_path
         return backup_path
 
-    def restore_backup(self, backup_path: str = None) -> Player:
+    def restore_backup(self, backup_path: str) -> Player:
         """
-        Restores from a .plr.bak file.
+        Restores from a timestamped .bak file.
         """
-        b_path = backup_path or (self.current_file_path + ".bak")
-        if not os.path.exists(b_path):
-            raise FileNotFoundError(f"Backup file not found at: {b_path}")
+        if not os.path.exists(backup_path):
+            raise FileNotFoundError(f"Backup file not found at: {backup_path}")
         
-        target = self.current_file_path or b_path.replace(".bak", "")
-        shutil.copy2(b_path, target)
+        target = self.current_file_path
+        if not target:
+            target = backup_path.split(".bak_")[0]
+            
+        shutil.copy2(backup_path, target)
         return self.load_plr(target)

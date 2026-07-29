@@ -7,7 +7,8 @@ class InventoryTab(ctk.CTkFrame):
         self.on_data_changed = on_data_changed_callback
         self.player: Player = None
         self.selected_slot_index: int = 0
-        self.slot_buttons = []
+        self.selected_slot_array: str = "inventory" # "inventory", "armor", "dye", "misc_eq"
+        self.slot_buttons = {} # (array_name, idx): btn
 
         self.accent_color = "#1DB954"
         self.frame_bg = "#1A1A1A"
@@ -24,36 +25,28 @@ class InventoryTab(ctk.CTkFrame):
         grid_card.grid(row=0, column=0, padx=(15, 10), pady=15, sticky="nsew")
         grid_card.grid_rowconfigure(1, weight=1)
 
-        ctk.CTkLabel(grid_card, text="🎒 Inventory Slots", font=ctk.CTkFont(size=16, weight="bold"), text_color=self.accent_color).pack(anchor="w", padx=15, pady=(15, 10))
+        ctk.CTkLabel(grid_card, text="🎒 Interactive Inventory Grid", font=ctk.CTkFont(size=16, weight="bold"), text_color=self.accent_color).pack(anchor="w", padx=15, pady=(15, 10))
 
         scroll_grid = ctk.CTkScrollableFrame(grid_card, fg_color="transparent")
         scroll_grid.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-        # Build 5x10 grid of main slots (0..49) plus 2x4 coins/ammo slots (50..57)
-        grid_frame = ctk.CTkFrame(scroll_grid, fg_color="transparent")
-        grid_frame.pack(fill="both", expand=True)
-
-        for i in range(58):
-            row = i // 5
-            col = i % 5
-            
-            btn_color = "#222222"
-            
-            btn = ctk.CTkButton(
-                grid_frame,
-                text=f"[{i+1}]\nEmpty",
-                font=ctk.CTkFont(size=10),
-                width=85,
-                height=50,
-                corner_radius=6,
-                fg_color=btn_color,
-                border_color="#333333",
-                border_width=1,
-                hover_color="#333333",
-                command=lambda idx=i: self._select_slot(idx)
-            )
-            btn.grid(row=row, column=col, padx=3, pady=3)
-            self.slot_buttons.append(btn)
+        # Hotbar (0-9)
+        self._create_section(scroll_grid, "Hotbar", "inventory", 0, 10, cols=10)
+        # Main (10-49)
+        self._create_section(scroll_grid, "Main Inventory", "inventory", 10, 50, cols=10)
+        # Coins & Ammo (50-57)
+        self._create_section(scroll_grid, "Coins & Ammo", "inventory", 50, 58, cols=4)
+        
+        # Armor/Accessories (20 slots)
+        self._create_section(scroll_grid, "Armor & Accessories", "armor", 0, 20, cols=5)
+        # Dyes (10 slots)
+        self._create_section(scroll_grid, "Vanity & Dyes", "dye", 0, 10, cols=5)
+        # Misc (5 slots)
+        self._create_section(scroll_grid, "Misc Equipment", "misc_eq", 0, 5, cols=5)
+        
+        # Banks (Coming soon)
+        ctk.CTkLabel(scroll_grid, text="Storage Banks", font=ctk.CTkFont(size=13, weight="bold"), text_color="#AAAAAA").pack(anchor="w", pady=(10, 5))
+        ctk.CTkLabel(scroll_grid, text="(Piggy Bank, Safe, Void Vault editing coming soon pending 1.4.4 API updates)", font=ctk.CTkFont(size=11, slant="italic"), text_color="#666666").pack(anchor="w")
 
         # Right Panel: Selected Slot Details & Quick Actions
         details_card = ctk.CTkFrame(self, corner_radius=10, fg_color=self.frame_bg, border_color="#333333", border_width=1)
@@ -61,7 +54,7 @@ class InventoryTab(ctk.CTkFrame):
 
         ctk.CTkLabel(details_card, text="⚡ Slot Editor", font=ctk.CTkFont(size=16, weight="bold"), text_color=self.accent_color).pack(anchor="w", padx=15, pady=(15, 10))
 
-        self.slot_title_lbl = ctk.CTkLabel(details_card, text="Selected Slot: #1", font=ctk.CTkFont(size=14, weight="bold"), text_color="#FFFFFF")
+        self.slot_title_lbl = ctk.CTkLabel(details_card, text="Selected Slot: Hotbar #1", font=ctk.CTkFont(size=14, weight="bold"), text_color="#FFFFFF")
         self.slot_title_lbl.pack(anchor="w", padx=15, pady=(0, 10))
 
         input_kwargs = {
@@ -72,11 +65,18 @@ class InventoryTab(ctk.CTkFrame):
         }
 
         # Preset Quick Add Search / Dropdown
-        ctk.CTkLabel(details_card, text="Quick Item Presets:", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=15, pady=(5, 2))
-        item_preset_options = [f"{name} (ID: {item_id})" for item_id, name in ITEM_NAMES.items()]
+        ctk.CTkLabel(details_card, text="Live Search Items:", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=15, pady=(5, 2))
+        
+        self.search_var = ctk.StringVar()
+        self.search_var.trace_add("write", self._filter_presets)
+        
+        search_entry = ctk.CTkEntry(details_card, textvariable=self.search_var, placeholder_text="Type to search...", **input_kwargs)
+        search_entry.pack(fill="x", padx=15, pady=(0, 5))
+        
+        self.item_preset_options = [f"{name} (ID: {item_id})" for item_id, name in ITEM_NAMES.items()]
         self.preset_option = ctk.CTkOptionMenu(
             details_card, 
-            values=item_preset_options, 
+            values=self.item_preset_options, 
             command=self._on_preset_selected,
             fg_color=self.input_bg,
             button_color=self.input_bg,
@@ -84,7 +84,6 @@ class InventoryTab(ctk.CTkFrame):
             dropdown_fg_color=self.input_bg,
             text_color="#FFFFFF",
         )
-
         self.preset_option.pack(fill="x", padx=15, pady=(0, 15))
 
         # Item ID Input
@@ -98,11 +97,12 @@ class InventoryTab(ctk.CTkFrame):
         stack_f = ctk.CTkFrame(details_card, fg_color="transparent")
         stack_f.pack(fill="x", padx=15, pady=5)
         ctk.CTkLabel(stack_f, text="Stack Size:", width=80, anchor="w", font=ctk.CTkFont(size=12, weight="bold")).pack(side="left")
-        self.stack_entry = ctk.CTkEntry(stack_f, **input_kwargs)
+        self.stack_entry = ctk.CTkEntry(stack_f, width=50, **input_kwargs)
         self.stack_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
         
-        max_stack_btn = ctk.CTkButton(stack_f, text="9999", width=50, fg_color=self.input_bg, border_color=self.accent_color, border_width=1, hover_color="#333333", text_color="#FFFFFF", command=lambda: self._set_entry(self.stack_entry, 9999))
-        max_stack_btn.pack(side="left")
+        ctk.CTkButton(stack_f, text="99", width=30, fg_color=self.input_bg, border_color=self.accent_color, border_width=1, hover_color="#333333", text_color="#FFFFFF", command=lambda: self._set_entry(self.stack_entry, 99)).pack(side="left", padx=1)
+        ctk.CTkButton(stack_f, text="999", width=35, fg_color=self.input_bg, border_color=self.accent_color, border_width=1, hover_color="#333333", text_color="#FFFFFF", command=lambda: self._set_entry(self.stack_entry, 999)).pack(side="left", padx=1)
+        ctk.CTkButton(stack_f, text="9999", width=40, fg_color=self.input_bg, border_color=self.accent_color, border_width=1, hover_color="#333333", text_color="#FFFFFF", command=lambda: self._set_entry(self.stack_entry, 9999)).pack(side="left", padx=1)
 
         # Prefix / Modifier Dropdown
         prefix_f = ctk.CTkFrame(details_card, fg_color="transparent")
@@ -118,7 +118,6 @@ class InventoryTab(ctk.CTkFrame):
             dropdown_fg_color=self.input_bg,
             text_color="#FFFFFF",
         )
-
         self.prefix_option.pack(side="left", fill="x", expand=True)
 
         # Apply Changes to Slot Button
@@ -156,6 +155,46 @@ class InventoryTab(ctk.CTkFrame):
         endgame_btn = ctk.CTkButton(details_card, text="Add Endgame Starter Pack", command=self._give_endgame_pack, **btn_kwargs)
         endgame_btn.pack(fill="x", padx=15, pady=4)
 
+    def _create_section(self, parent, title, array_name, start_idx, end_idx, cols):
+        ctk.CTkLabel(parent, text=title, font=ctk.CTkFont(size=13, weight="bold"), text_color="#AAAAAA").pack(anchor="w", pady=(10, 5))
+        grid_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        grid_frame.pack(fill="x")
+        
+        count = end_idx - start_idx
+        for i in range(count):
+            real_idx = start_idx + i
+            row = i // cols
+            col = i % cols
+            
+            btn = ctk.CTkButton(
+                grid_frame,
+                text=f"[{real_idx+1}]\nEmpty",
+                font=ctk.CTkFont(size=10),
+                width=80 if cols > 5 else 100,
+                height=45,
+                corner_radius=6,
+                fg_color="#222222",
+                border_color="#333333",
+                border_width=1,
+                hover_color="#333333",
+                command=lambda an=array_name, ri=real_idx, t=title: self._select_slot(an, ri, t)
+            )
+            btn.grid(row=row, column=col, padx=2, pady=2)
+            self.slot_buttons[(array_name, real_idx)] = btn
+
+    def _filter_presets(self, *args):
+        search_term = self.search_var.get().lower()
+        if not search_term:
+            self.preset_option.configure(values=self.item_preset_options)
+        else:
+            filtered = [opt for opt in self.item_preset_options if search_term in opt.lower()]
+            if filtered:
+                self.preset_option.configure(values=filtered)
+                self.preset_option.set(filtered[0])
+            else:
+                self.preset_option.configure(values=["No items found"])
+                self.preset_option.set("No items found")
+
     def _set_entry(self, entry_widget, val):
         entry_widget.delete(0, "end")
         entry_widget.insert(0, str(val))
@@ -167,51 +206,60 @@ class InventoryTab(ctk.CTkFrame):
             if not self.stack_entry.get() or self.stack_entry.get() == "0":
                 self._set_entry(self.stack_entry, 1)
 
-    def _select_slot(self, slot_idx: int):
+    def _select_slot(self, array_name: str, slot_idx: int, title: str):
         # Reset border for all buttons
-        for btn in self.slot_buttons:
+        for btn in self.slot_buttons.values():
             btn.configure(border_color="#333333", border_width=1)
         
+        self.selected_slot_array = array_name
         self.selected_slot_index = slot_idx
-        self.slot_title_lbl.configure(text=f"Selected Slot: #{slot_idx + 1}")
+        self.slot_title_lbl.configure(text=f"Selected: {title} #{slot_idx + 1}")
         
         # Highlight selected button
-        if slot_idx < len(self.slot_buttons):
-            self.slot_buttons[slot_idx].configure(border_color=self.accent_color, border_width=2)
+        if (array_name, slot_idx) in self.slot_buttons:
+            self.slot_buttons[(array_name, slot_idx)].configure(border_color=self.accent_color, border_width=2)
 
-        if self.player and slot_idx < len(self.player.inventory):
-            item = self.player.inventory[slot_idx]
-            self._set_entry(self.item_id_entry, item.id)
-            self._set_entry(self.stack_entry, item.stack)
-            
-            p_name = PREFIX_NAMES.get(item.prefix, "None")
-            self.prefix_option.set(f"{p_name} ({item.prefix})")
+        if self.player:
+            arr = getattr(self.player, array_name)
+            if slot_idx < len(arr):
+                item = arr[slot_idx]
+                self._set_entry(self.item_id_entry, item.id)
+                self._set_entry(self.stack_entry, item.stack)
+                p_name = PREFIX_NAMES.get(item.prefix, "None")
+                self.prefix_option.set(f"{p_name} ({item.prefix})")
 
     def _update_grid_display(self):
         if not self.player:
             return
-        for i, item in enumerate(self.player.inventory[:58]):
-            if i < len(self.slot_buttons):
+            
+        for (array_name, idx), btn in self.slot_buttons.items():
+            arr = getattr(self.player, array_name)
+            if idx < len(arr):
+                item = arr[idx]
                 if item.id > 0:
                     prefix_str = f"[{PREFIX_NAMES.get(item.prefix, '')[:3]}] " if item.prefix > 0 else ""
-                    text = f"[{i+1}]\n{prefix_str}{item.name[:10]}\nx{item.stack}"
-                    self.slot_buttons[i].configure(text=text, fg_color="#2A2A2A", text_color=self.accent_color)
+                    text = f"[{idx+1}]\n{prefix_str}{item.name[:10]}\nx{item.stack}"
+                    btn.configure(text=text, fg_color="#2A2A2A", text_color=self.accent_color)
                 else:
-                    self.slot_buttons[i].configure(text=f"[{i+1}]\nEmpty", fg_color="#222222", text_color="#777777")
-        # Ensure the selected slot retains its highlight
-        self._select_slot(self.selected_slot_index)
+                    btn.configure(text=f"[{idx+1}]\nEmpty", fg_color="#222222", text_color="#777777")
+                    
+        self._select_slot(self.selected_slot_array, self.selected_slot_index, "Slot")
 
     def load_player_data(self, player: Player):
         self.player = player
         self._update_grid_display()
-        self._select_slot(0)
+        self._select_slot("inventory", 0, "Hotbar")
 
     def apply_to_player(self) -> Player:
         self._apply_slot_changes()
         return self.player
 
     def _apply_slot_changes(self):
-        if not self.player or self.selected_slot_index >= len(self.player.inventory):
+        if not self.player:
+            return
+            
+        arr = getattr(self.player, self.selected_slot_array)
+        if self.selected_slot_index >= len(arr):
             return
 
         try:
@@ -230,7 +278,7 @@ class InventoryTab(ctk.CTkFrame):
         except Exception:
             prefix_id = 0
 
-        self.player.inventory[self.selected_slot_index] = InventoryItem(id=item_id, stack=stack, prefix=prefix_id)
+        arr[self.selected_slot_index] = InventoryItem(id=item_id, stack=stack, prefix=prefix_id)
         self._update_grid_display()
 
     def _clear_slot(self):
@@ -244,7 +292,7 @@ class InventoryTab(ctk.CTkFrame):
             return
         self.player.inventory[50] = InventoryItem(id=74, stack=9999, prefix=0)
         self._update_grid_display()
-        self._select_slot(50)
+        self._select_slot("inventory", 50, "Coins & Ammo")
 
     def _give_endgame_pack(self):
         if not self.player:
@@ -262,4 +310,4 @@ class InventoryTab(ctk.CTkFrame):
             if idx < len(self.player.inventory):
                 self.player.inventory[idx] = item
         self._update_grid_display()
-        self._select_slot(0)
+        self._select_slot("inventory", 0, "Hotbar")
