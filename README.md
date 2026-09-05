@@ -1,56 +1,51 @@
-# Terraria Save File Editor 🗡️
+﻿# Terraria Save File Editor
 
-A modern, local desktop application for editing Terraria player save files (`.plr`) on Windows.
+> **AES-128 Binary Parser and Player Save Editor for Windows**
 
-![Terraria Save Editor](https://img.shields.io/badge/Platform-Windows-blue)
-![Version](https://img.shields.io/badge/Release-v1.0.0-success)
+[![Platform](https://img.shields.io/badge/Platform-Windows-blue.svg)](https://github.com/valliente/terraria-save-editor/releases)
+[![Version](https://img.shields.io/badge/Release-v1.0.0-green.svg)](https://github.com/valliente/terraria-save-editor/releases)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A standalone desktop application for parsing, inspecting, and modifying Terraria player save files (`.plr`) on Windows.
 
 ---
 
-## 🛡️ Windows SmartScreen / Defender Notice
+## Features
 
-Because this is a standalone open-source utility compiled with PyInstaller, Windows SmartScreen or Smart App Control may display an *"Unknown Publisher"* warning upon downloading or launching for the first time.
+- **AES Decryption & Encryption**: Handles raw `.plr` decryption and re-encryption via AES-128-CBC with integrity checking.
+- **Automated Backup Protection**: Automatically generates timestamped `<filename>.plr.bak` snapshots before committing modifications to disk.
+- **Player Attribute Editor**: Edit Player Name, Difficulty Mode (*Classic, Mediumcore, Hardcore, Journey*), Health (*100-500 HP*), Mana (*20-200 Mana*), Hair Style indices, and Hex/RGB color parameters.
+- **Inventory & Equipment Grid**:
+  - Interactive grid for all 50 primary inventory slots plus dedicated Coin and Ammo channels.
+  - Searchable item database with prefix modifier assignments (*Legendary, Unreal, Mythical, Godly, Warding, Menacing*).
+  - Stack count controls supporting maximum values up to 9999.
+- **Directory Auto-Discovery**: Automatically locates standard player save paths (`Documents\My Games\Terraria\Players`) with manual directory browsing fallback.
 
-### How to run smoothly:
+---
 
-- **Option A (Quick UI Unblock)**:
-  1. Click **More info** on the blue SmartScreen prompt.
-  2. Click **Run anyway**.
+## Windows Execution & SmartScreen Advisory
 
-- **Option B (Unblock File Properties)**:
-  1. Right-click `TerrariaSaveEditor.exe` -> **Properties**.
-  2. At the bottom of the **General** tab, check **Unblock** -> **Apply**.
+Because this open-source utility is distributed as an unsigned standalone binary compiled via PyInstaller, Windows SmartScreen or Smart App Control may display an unrecognized application prompt upon initial execution.
 
-- **Option C (PowerShell One-Liner)**:
+To unblock the executable:
+- **PowerShell**:
   ```powershell
   Unblock-File -Path .\TerrariaSaveEditor.exe
   ```
+- **Properties Dialog**: Right-click `TerrariaSaveEditor.exe` > **Properties** > check **Unblock** at the bottom of the General tab > **Apply**.
 
 ---
 
-## 🌟 Features
+## Download & Installation
 
-- **🔒 AES Decryption & Encryption**: Decrypts and re-encrypts `.plr` files using AES-128-CBC.
-- **🛡️ Auto-Backup System**: Automatically creates a `<filename>.plr.bak` backup copy before writing changes.
-- **👤 Player Attribute Editor**: Modify Name, Difficulty Mode (*Classic, Mediumcore, Hardcore, Journey*), Health (*100-500 HP*), Mana (*20-200 Mana*), Hair Style, and Hex/RGB Colors.
-- **🎒 Inventory Editor**:
-  - Interactive grid for all 50 main inventory slots + 8 Coin & Ammo slots.
-  - Searchable Item Presets (*Zenith, Terraprisma, Platinum Coins, Solar Armor, etc.*).
-  - Modifier & Prefix selector (*Legendary, Unreal, Mythical, Godly, Warding, Menacing, etc.*).
-  - One-click presets: *Give 9999 Platinum Coins*, *Add Endgame Starter Pack*.
-- **📁 File Management**: Auto-locates standard Terraria player save directories (`My Games\Terraria\Players`) and supports quick backup restoration.
-
----
-
-## 🚀 Download & Installation
-
-1. Go to the [Releases](https://github.com/valliente/terraria-save-editor/releases) page.
+1. Navigate to the [Releases](https://github.com/valliente/terraria-save-editor/releases) page.
 2. Download `TerrariaSaveEditor.exe`.
-3. Unblock the file (if prompted by SmartScreen) and double-click to launch!
+3. Launch the application and select your desired `.plr` save file.
 
 ---
 
-## 💻 Building from Source
+## Building from Source
 
 ```bash
 # Clone repository
@@ -63,12 +58,12 @@ pip install customtkinter pycryptodome pyinstaller
 # Run locally
 python main.py
 
-# Build single-file executable
+# Compile standalone single-file binary
 pyinstaller --noconsole --onefile --collect-all customtkinter --name="TerrariaSaveEditor" main.py
 ```
 
 ---
 
-## 📄 License
+## License
 
-MIT License. Free to use and modify.
+Distributed under the MIT License. See `LICENSE` for details.
